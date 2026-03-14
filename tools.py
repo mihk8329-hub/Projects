@@ -24,7 +24,7 @@ def get_top_gainers():
         print("Request failed:", e)
         return []
     except ValueError as e:
-        print("Invalid JSON:", e)
+        print("Invalid JSONs:", e)
         return []
 
 
