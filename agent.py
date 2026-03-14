@@ -1,28 +1,49 @@
-from tools import get_market_data, calculate_indicators, generate_signal, risk_management
+from tools import get_top_gainers, analyze_stock
+
 
 class TradingAgent:
 
-    def analyze(self, symbol):
 
-        data = get_market_data(symbol)
+    def analyze_top_stocks(self):
 
-        indicators = calculate_indicators(data)
+        symbols = get_top_gainers()
 
-        signal = generate_signal(indicators)
+        result = "Top 10 Stocks Today\n\n"
 
-        entry = float(data['Close'].iloc[-1].iloc[0])
+        for s in symbols:
 
-        stoploss, target = risk_management(entry)
+            price, rsi, macd = analyze_stock(s)
 
-        return f"""
-Market: {symbol}
+            if rsi > 70:
+                trade_type = "Intraday Sell"
+                target = price * 0.98
+                stoploss = price * 1.02
 
-Signal: {signal}
+            elif rsi < 30:
+                trade_type = "Intraday Buy"
+                target = price * 1.03
+                stoploss = price * 0.97
 
-Entry: {entry:.2f}
-Stoploss: {stoploss:.2f}
-Target: {target:.2f}
+            elif macd > 0:
+                trade_type = "Short Term"
+                target = price * 1.05
+                stoploss = price * 0.95
 
-RSI: {indicators['rsi']:.2f}
-MACD: {indicators['macd']:.2f}
-"""
+            else:
+                trade_type = "Long Term Investment"
+                target = None
+                stoploss = None
+
+
+            result += f"{s}\n"
+            result += f"Type: {trade_type}\n"
+            result += f"Price: {price:.2f}\n"
+
+            if target:
+                result += f"Target: {target:.2f}\n"
+                result += f"Stoploss: {stoploss:.2f}\n"
+
+            result += f"RSI: {rsi:.2f}\n\n"
+
+
+        return result

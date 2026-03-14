@@ -1,51 +1,43 @@
 import yfinance as yf
+import requests
 from ta.momentum import RSIIndicator
 from ta.trend import MACD
 
 
-# Fetch market data
-def get_market_data(symbol):
+def get_top_gainers():
+    url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=day_gainers"
 
-    data = yf.download(
-        symbol,
-        period="5d",
-        interval="15m"
-    )
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # Raises HTTPError for bad responses (404, 500, etc.)
 
-    return data
+        data = response.json()  # Can still fail if response is not JSON
 
+        quotes = data.get("finance", {}).get("result", [{}])[0].get("quotes", [])
+        if not quotes:
+            return []
 
-# Calculate indicators
-def calculate_indicators(data):
+        symbols = [q["symbol"] for q in quotes[:10]]
+        return symbols
 
-    # Convert Close column to 1-D series
-    close_prices = data['Close'].squeeze()
-
-    rsi = RSIIndicator(close_prices).rsi()
-    macd = MACD(close_prices).macd()
-
-    return {
-        "rsi": rsi.iloc[-1],
-        "macd": macd.iloc[-1]
-    }
+    except requests.exceptions.RequestException as e:
+        print("Request failed:", e)
+        return []
+    except ValueError as e:
+        print("Invalid JSON:", e)
+        return []
 
 
-# Generate signal
-def generate_signal(indicators):
+def analyze_stock(symbol):
 
-    if indicators["rsi"] < 30:
-        return "BUY"
+    data = yf.download(symbol, period="5d", interval="15m")
 
-    if indicators["rsi"] > 70:
-        return "SELL"
+    close = data["Close"].squeeze()
 
-    return "HOLD"
+    rsi = RSIIndicator(close).rsi().iloc[-1]
 
+    macd = MACD(close).macd().iloc[-1]
 
-# Risk management
-def risk_management(entry):
+    price = float(close.iloc[-1])
 
-    stoploss = entry * 0.98
-    target = entry * 1.04
-
-    return stoploss, target
+    return price, rsi, macd

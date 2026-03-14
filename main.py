@@ -1,29 +1,38 @@
 from agent import TradingAgent
-from notifier import send_telegram
-import schedule
+from notifier import send_telegram, get_updates
 import time
 
-print("Running market analysis...")
+agent = TradingAgent()
 
-def run_analysis():
+last_update_id = None
 
-    agent = TradingAgent()
-
-    result = agent.analyze("CL=F")
-
-    print(result)
-    send_telegram(result)
-
-
-run_analysis()
-
-schedule.every(5).minutes.do(run_analysis)
+print("Bot started")
 
 while True:
 
-    print("Waiting for next run...")
+    updates = get_updates(last_update_id)
 
-    schedule.run_pending()
+    if "result" in updates:
 
-    time.sleep(60)
+        for update in updates["result"]:
 
+            last_update_id = update["update_id"] + 1
+
+            if "message" in update:
+
+                text = update["message"]["text"].lower()
+
+                if "top stocks" in text:
+
+                    result = agent.analyze_top_stocks()
+
+                    send_telegram(result)
+
+                else:
+
+                    send_telegram(
+                        "Commands:\n"
+                        "top stocks"
+                    )
+
+    time.sleep(30)
